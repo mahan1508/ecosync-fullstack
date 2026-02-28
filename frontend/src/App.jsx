@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Leaf, MapPin, ClipboardList, Trash2 } from 'lucide-react';
+import { Leaf, MapPin, ClipboardList, Trash2, Globe } from 'lucide-react';
 
 function App() {
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showCenters, setShowCenters] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', price: '' });
+
+  // Mock data for Recycling Centers
+  const [centers] = useState([
+    { id: 1, name: "EcoRecycle Hub", address: "123 Green St", type: "Electronics" },
+    { id: 2, name: "City Waste Center", address: "456 Blue Ave", type: "Plastic/Metal" },
+    { id: 3, name: "Renewable Depot", address: "789 Pine Rd", type: "All Materials" }
+  ]);
 
   // 1. Fetch items from your live Render backend
   const fetchItems = () => {
@@ -20,6 +28,9 @@ function App() {
     fetchItems();
   }, []);
 
+  // Calculate Total Carbon Saved (Assume 2.5kg CO2 per 1kg of waste as an average)
+  const totalCarbonSaved = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * 2.5, 0);
+
   // 2. Handle Submit (Add new items)
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,17 +38,17 @@ function App() {
       await axios.post('https://ecosync-api.onrender.com/items/', formData);
       setFormData({ title: '', description: '', price: '' });
       setShowForm(false);
-      fetchItems(); // Refresh the list automatically
+      fetchItems(); 
     } catch (err) {
       alert("Error adding item. Make sure Render is active!");
     }
   };
 
-  // 3. Handle Delete (The new functionality)
+  // 3. Handle Delete
   const handleDelete = async (id) => {
     try {
       await axios.delete(`https://ecosync-api.onrender.com/items/${id}`);
-      fetchItems(); // Refresh the list after deleting
+      fetchItems(); 
     } catch (err) {
       alert("Could not delete item. Check if your backend supports DELETE.");
     }
@@ -46,18 +57,51 @@ function App() {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
+        
+        {/* HEADER SECTION */}
         <header style={{ marginBottom: '20px' }}>
           <h1 style={logoStyle}><Leaf size={28} /> EcoSync</h1>
           <p style={{ opacity: 0.7 }}>Smart Waste Orchestration v2.0</p>
         </header>
 
+        {/* CARBON COUNTER STAT */}
+        <div style={statsBox}>
+          <Globe size={20} color="#10b981" />
+          <span>Total Carbon Offset: <strong>{totalCarbonSaved.toFixed(1)} kg CO2</strong></span>
+        </div>
+
+        {/* ACTION BUTTONS */}
         <div style={buttonGroup}>
-          <button style={actionBtn}><MapPin size={18} /> Find Centers</button>
-          <button style={actionBtn} onClick={() => setShowForm(!showForm)}>
+          <button 
+            style={{...actionBtn, background: showCenters ? '#10b981' : '#334155'}} 
+            onClick={() => { setShowCenters(!showCenters); setShowForm(false); }}
+          >
+            <MapPin size={18} /> {showCenters ? "Hide Centers" : "Find Centers"}
+          </button>
+          <button 
+            style={{...actionBtn, background: showForm ? '#10b981' : '#334155'}} 
+            onClick={() => { setShowForm(!showForm); setShowCenters(false); }}
+          >
             <ClipboardList size={18} /> {showForm ? "Close Form" : "Post Item"}
           </button>
         </div>
 
+        {/* RECYCLING CENTERS LIST */}
+        {showCenters && (
+          <div style={infoPanel}>
+            <h4 style={{ color: '#10b981', marginTop: 0 }}>Nearby Recycling Centers</h4>
+            {centers.map(center => (
+              <div key={center.id} style={centerItem}>
+                <strong>{center.name}</strong>
+                <p style={{ margin: '2px 0', fontSize: '0.85rem', opacity: 0.8 }}>
+                  {center.address} • <span style={{color: '#10b981'}}>{center.type}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* POST ITEM FORM */}
         {showForm && (
           <form onSubmit={handleSubmit} style={formStyle}>
             <input 
@@ -76,6 +120,7 @@ function App() {
           </form>
         )}
 
+        {/* MARKETPLACE LIST */}
         <h3 style={listHeaderStyle}>Live Marketplace</h3>
         <div style={listContainer}>
           {items.map((item) => (
@@ -84,11 +129,7 @@ function App() {
                 <strong style={{ fontSize: '1.1rem' }}>{item.title}</strong>
                 <p style={{ margin: '4px 0', color: '#10b981', fontWeight: 'bold' }}>{item.price} kg</p>
               </div>
-              <button 
-                onClick={() => handleDelete(item.id)} 
-                style={deleteBtn}
-                title="Delete Item"
-              >
+              <button onClick={() => handleDelete(item.id)} style={deleteBtn}>
                 <Trash2 size={18} />
               </button>
             </div>
@@ -104,18 +145,21 @@ function App() {
   );
 }
 
-// --- STYLING (The CSS-in-JS) ---
+// --- STYLES ---
 const containerStyle = { backgroundColor: '#0f172a', color: 'white', minHeight: '100vh', padding: '40px 20px', fontFamily: 'system-ui, sans-serif' };
-const cardStyle = { maxWidth: '500px', margin: '0 auto', background: '#1e293b', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' };
+const cardStyle = { maxWidth: '500px', margin: '0 auto', background: '#1e293b', padding: '25px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' };
 const logoStyle = { display: 'flex', alignItems: 'center', gap: '10px', color: '#10b981', marginBottom: '5px' };
+const statsBox = { display: 'flex', alignItems: 'center', gap: '10px', background: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' };
 const buttonGroup = { display: 'flex', gap: '10px', marginTop: '20px' };
-const actionBtn = { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: 'none', borderRadius: '8px', background: '#334155', color: 'white', cursor: 'pointer', fontSize: '14px' };
+const actionBtn = { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', transition: '0.3s' };
+const infoPanel = { marginTop: '20px', padding: '15px', background: '#0f172a', borderRadius: '12px', border: '1px solid #10b981' };
+const centerItem = { padding: '10px 0', borderBottom: '1px solid #334155' };
 const formStyle = { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px', padding: '15px', background: '#0f172a', borderRadius: '8px' };
 const inputStyle = { padding: '12px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: 'white' };
 const submitBtn = { padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
 const listHeaderStyle = { marginTop: '30px', fontSize: '1.2rem', borderBottom: '1px solid #334155', paddingBottom: '10px' };
 const listContainer = { marginTop: '15px' };
-const itemCard = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#334155', borderRadius: '10px', marginBottom: '12px', transition: 'transform 0.2s' };
-const deleteBtn = { background: '#ef4444', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const itemCard = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#334155', borderRadius: '10px', marginBottom: '12px' };
+const deleteBtn = { background: '#ef4444', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' };
 
 export default App;
