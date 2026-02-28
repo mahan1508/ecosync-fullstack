@@ -28,19 +28,28 @@ function App() {
     fetchItems();
   }, []);
 
-  // Calculate Total Carbon Saved (Assume 2.5kg CO2 per 1kg of waste as an average)
-  const totalCarbonSaved = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * 2.5, 0);
+  // Calculate Total Carbon Saved based on the backend's data
+  const totalCarbonSaved = items.reduce((sum, item) => sum + (parseFloat(item.carbon_offset_kg) || 0), 0);
 
-  // 2. Handle Submit (Add new items)
+  // 2. Handle Submit (Updated to match Backend Schema)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('https://ecosync-api.onrender.com/items/', formData);
+      // We must send 'category' and 'weight_kg' because the backend main.py needs them
+      await axios.post('https://ecosync-api.onrender.com/items/', {
+        title: formData.title,
+        description: "Shared via EcoSync Community",
+        category: "electronics", // Default category to satisfy backend
+        price: parseFloat(formData.price) || 0,
+        weight_kg: parseFloat(formData.price) || 0 // Using weight as price for simplicity
+      });
+      
       setFormData({ title: '', description: '', price: '' });
       setShowForm(false);
       fetchItems(); 
     } catch (err) {
-      alert("Error adding item. Make sure Render is active!");
+      console.error("Submission error:", err.response?.data || err.message);
+      alert("Error adding item. Make sure you entered a valid weight number!");
     }
   };
 
@@ -111,7 +120,8 @@ function App() {
               value={formData.title} required 
             />
             <input 
-              placeholder="Weight in kg" 
+              placeholder="Weight in kg (Numbers only)" 
+              type="number"
               style={inputStyle} 
               onChange={(e) => setFormData({...formData, price: e.target.value})} 
               value={formData.price} required 
@@ -127,7 +137,8 @@ function App() {
             <div key={item.id} style={itemCard}>
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: '1.1rem' }}>{item.title}</strong>
-                <p style={{ margin: '4px 0', color: '#10b981', fontWeight: 'bold' }}>{item.price} kg</p>
+                <p style={{ margin: '4px 0', color: '#10b981', fontWeight: 'bold' }}>{item.weight_kg} kg</p>
+                <small style={{ opacity: 0.6 }}>Offset: {item.carbon_offset_kg}kg CO2</small>
               </div>
               <button onClick={() => handleDelete(item.id)} style={deleteBtn}>
                 <Trash2 size={18} />
