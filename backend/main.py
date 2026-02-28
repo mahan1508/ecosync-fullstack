@@ -71,3 +71,10 @@ def list_items(db: Session = Depends(get_db)):
 if __name__ == "__main__":
     # Using 'main:app' as a string ensures 'reload=True' works correctly
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+@app.delete("/items/{item_id}")
+def delete_item(item_id: int):
+    global items
+    # This line filters out the item with the ID we want to delete
+    items = [i for i in items if i["id"] != item_id]
+    return {"message": "Item deleted successfully"}    
