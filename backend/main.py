@@ -68,13 +68,17 @@ def create_item(item_data: schemas.ItemBase, db: Session = Depends(get_db)):
 def list_items(db: Session = Depends(get_db)):
     return db.query(EcoItem).all()
 
-if __name__ == "__main__":
-    # Using 'main:app' as a string ensures 'reload=True' works correctly
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-
+# --- THE DELETE ROUTE (MUST BE BEFORE THE __main__ BLOCK) ---
 @app.delete("/items/{item_id}")
-def delete_item(item_id: int):
-    global items
-    # This line filters out the item with the ID we want to delete
-    items = [i for i in items if i["id"] != item_id]
-    return {"message": "Item deleted successfully"}    
+def delete_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(EcoItem).filter(EcoItem.id == item_id).first()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    db.delete(item)
+    db.commit()
+    return {"message": f"Item {item_id} deleted successfully"}
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
