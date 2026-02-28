@@ -11,7 +11,7 @@ function App() {
   const [formData, setFormData] = useState({ title: '', description: '', category: 'electronics', price: 0, weight_kg: 0 });
 
   const fetchItems = () => {
-    axios.get('http://127.0.0.1:8000/items/').then(res => setItems(res.data)).catch(() => {});
+    axios.get('https://ecosync-api.onrender.com/items/').then(res => setItems(res.data)).catch(() => {});
   };
 
   useEffect(() => { fetchItems(); }, []);
@@ -19,7 +19,7 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://127.0.0.1:8000/items/', formData);
+     await axios.post('https://ecosync-api.onrender.com/items/', formData);
       setShowForm(false);
       fetchItems();
     } catch (err) { alert("Backend error! Is main.py running?"); }
